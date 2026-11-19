@@ -1,30 +1,28 @@
 #!/usr/bin/env bash
-# Configures Nginx to run as the nginx user and listen on port 8080.
+# Configures Nginx to run as nginx and listen on port 8080.
 
 if ! id nginx >/dev/null 2>&1; then
     useradd --system --no-create-home --shell /usr/sbin/nologin nginx
 fi
 
-mkdir -p /var/log/nginx /var/lib/nginx /var/cache/nginx
+mkdir -p /var/log/nginx /var/cache/nginx /var/lib/nginx
+chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
 
-chown -R nginx:nginx /var/log/nginx /var/lib/nginx /var/cache/nginx
+sed -i 's|^[[:space:]]*pid .*;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
 
-sed -i 's/^user .*/user nginx;/' /etc/nginx/nginx.conf
-sed -i 's|^pid .*;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
-
-if ! grep -q '^user nginx;' /etc/nginx/nginx.conf; then
+if grep -q '^[[:space:]]*user ' /etc/nginx/nginx.conf; then
+    sed -i 's/^[[:space:]]*user .*/user nginx;/' /etc/nginx/nginx.conf
+else
     sed -i '1i user nginx;' /etc/nginx/nginx.conf
 fi
 
-sed -i 's/listen 80 default_server;/listen 8080 default_server;/' /etc/nginx/sites-available/default
-sed -i 's/listen 80;/listen 8080;/' /etc/nginx/sites-available/default
-sed -i 's/listen \[::\]:80 default_server;/listen [::]:8080 default_server;/' /etc/nginx/sites-available/default
-sed -i 's/listen \[::\]:80;/listen [::]:8080;/' /etc/nginx/sites-available/default
+sed -i 's/listen 80 default_server;/listen 8080 default_server;/' /etc/nginx/sites-enabled/default
+sed -i 's/listen \[::\]:80 default_server ipv6only=on;/listen [::]:8080 default_server ipv6only=on;/' /etc/nginx/sites-enabled/default
 
+service apache2 stop || true
 service nginx stop || true
 pkill -x nginx || true
-sleep 1
 
-nginx -t
+nginx -t || exit 1
 
 su -s /bin/sh nginx -c '/usr/sbin/nginx'
