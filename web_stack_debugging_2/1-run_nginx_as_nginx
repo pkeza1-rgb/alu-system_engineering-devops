@@ -5,11 +5,21 @@ if ! id nginx >/dev/null 2>&1; then
     useradd --system --no-create-home --shell /usr/sbin/nologin nginx
 fi
 
+# Remove the user directive because Nginx will start as nginx.
 sed -i '/^[[:space:]]*user[[:space:]].*;/d' /etc/nginx/nginx.conf
-sed -i 's|^pid .*;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
 
-sed -i 's/listen 80 default_server;/listen 8080 default_server;/' /etc/nginx/sites-enabled/default
-sed -i 's/listen \[::\]:80 default_server;/listen [::]:8080 default_server;/' /etc/nginx/sites-enabled/default
+# Set the PID file location.
+sed -i 's|^[[:space:]]*pid .*;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
+
+# Change every active port 80 listener in the Nginx configuration.
+find /etc/nginx -type f -exec sed -i -E \
+    's/^([[:space:]]*listen[[:space:]]+)(\[::\]:)?80([[:space:];])/\1\28080\3/g' {} +
+
+# Ensure no active port 80 listener remains.
+if grep -RniE '^[[:space:]]*listen[[:space:]]+(\[::\]:)?80([[:space:];]|$)' /etc/nginx; then
+    echo "Error: Nginx still has a port 80 listener."
+    exit 1
+fi
 
 mkdir -p /var/log/nginx /var/cache/nginx /var/lib/nginx
 chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
@@ -22,4 +32,11 @@ nginx -t || exit 1
 chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
 rm -f /tmp/nginx.pid
 
-su -s /bin/sh nginx -c '/usr/sbin/nginx'
+# Start Nginx as the nginx user.
+su -s /bin/sh nginx -c '/usr/sbin/nginx' || exit 1
+
+# Display the running Nginx processes.
+ps -eo user,pid,ppid,args | grep '[n]ginx'
+
+# Display the port 8080 listeners.
+ss -lntp | grep ':8080'
