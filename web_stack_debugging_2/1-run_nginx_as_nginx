@@ -36,7 +36,7 @@ rm -f /tmp/nginx.pid
 su -s /bin/sh nginx -c '/usr/sbin/nginx' || exit 1
 
 # Display the running Nginx processes.
-ps -eo user,pid,ppid,args | grep '[n]ginx'
+ps -a -u nginx nginx
 
 # Display the port 8080 listeners.
 ss -lntp | grep ':8080'
