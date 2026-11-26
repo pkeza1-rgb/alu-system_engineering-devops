@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 # Configures Nginx to run as nginx and listen on port 8080.
 
@@ -5,20 +6,19 @@ if ! id nginx >/dev/null 2>&1; then
     useradd --system --no-create-home --shell /usr/sbin/nologin nginx
 fi
 
-chmod 755 /etc/nginx /etc/nginx/sites-enabled
-chmod 644 /etc/nginx/nginx.conf /etc/nginx/sites-enabled/default
-
-sed -i 's|^#user .*;|user nginx;|' /etc/nginx/nginx.conf
-sed -i 's|^pid .*;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
+sed -i '/^[[:space:]]*user[[:space:]].*;/d' /etc/nginx/nginx.conf
+sed -i 's|^pid .*;|pid /var/lib/nginx/nginx.pid;|' /etc/nginx/nginx.conf
 
 sed -i 's/listen 80 default_server;/listen 8080 default_server;/' /etc/nginx/sites-enabled/default
-sed -i 's/listen \[::\]:80 default_server ipv6only=on;/listen [::]:8080 default_server ipv6only=on;/' /etc/nginx/sites-enabled/default
+sed -i 's/listen \[::\]:80 default_server;/listen [::]:8080 default_server;/' /etc/nginx/sites-enabled/default
 
 mkdir -p /var/log/nginx /var/cache/nginx /var/lib/nginx
 chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
 
-service apache2 stop || true
-pkill -x nginx || true
+service apache2 stop 2>/dev/null || true
+pkill -x nginx 2>/dev/null || true
+rm -f /var/lib/nginx/nginx.pid
 
 nginx -t || exit 1
 su -s /bin/sh nginx -c '/usr/sbin/nginx'
+
