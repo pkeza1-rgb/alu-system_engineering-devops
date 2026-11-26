@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 # Configures Nginx to run as nginx and listen on port 8080.
 
@@ -7,7 +6,7 @@ if ! id nginx >/dev/null 2>&1; then
 fi
 
 sed -i '/^[[:space:]]*user[[:space:]].*;/d' /etc/nginx/nginx.conf
-sed -i 's|^pid .*;|pid /var/lib/nginx/nginx.pid;|' /etc/nginx/nginx.conf
+sed -i 's|^pid .*;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
 
 sed -i 's/listen 80 default_server;/listen 8080 default_server;/' /etc/nginx/sites-enabled/default
 sed -i 's/listen \[::\]:80 default_server;/listen [::]:8080 default_server;/' /etc/nginx/sites-enabled/default
@@ -17,8 +16,10 @@ chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
 
 service apache2 stop 2>/dev/null || true
 pkill -x nginx 2>/dev/null || true
-rm -f /var/lib/nginx/nginx.pid
 
 nginx -t || exit 1
-su -s /bin/sh nginx -c '/usr/sbin/nginx'
 
+chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
+rm -f /tmp/nginx.pid
+
+su -s /bin/sh nginx -c '/usr/sbin/nginx'
