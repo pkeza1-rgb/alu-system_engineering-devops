@@ -1,42 +1,20 @@
 #!/usr/bin/env bash
-# Configures Nginx to run as nginx and listen on port 8080.
+# Configures Nginx to run as the nginx user and listen on all IPs on port 8080
 
-if ! id nginx >/dev/null 2>&1; then
-    useradd --system --no-create-home --shell /usr/sbin/nologin nginx
-fi
+# Set the user directive to nginx (handles commented or existing user lines)
+sed -i 's/^\s*#\?\s*user\s\+[^;]*;/user nginx;/' /etc/nginx/nginx.conf
 
-# Remove the user directive because Nginx will start as nginx.
-sed -i '/^[[:space:]]*user[[:space:]].*;/d' /etc/nginx/nginx.conf
+# Listen on port 8080 (IPv4 and IPv6) instead of 80
+sed -i 's/\b80\b/8080/g' /etc/nginx/sites-available/default
 
-# Set the PID file location.
-sed -i 's|^[[:space:]]*pid .*;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
+# Make sure the nginx user can read the config
+chmod 644 /etc/nginx/nginx.conf
 
-# Change every active port 80 listener in the Nginx configuration.
-find /etc/nginx -type f -exec sed -i -E \
-    's/^([[:space:]]*listen[[:space:]]+)(\[::\]:)?80([[:space:];])/\1\28080\3/g' {} +
+# Stop anything that could hold the port (Apache) and any running Nginx
+pkill apache2
+service nginx stop
+pkill -9 nginx
 
-# Ensure no active port 80 listener remains.
-if grep -RniE '^[[:space:]]*listen[[:space:]]+(\[::\]:)?80([[:space:];]|$)' /etc/nginx; then
-    echo "Error: Nginx still has a port 80 listener."
-    exit 1
-fi
-
-mkdir -p /var/log/nginx /var/cache/nginx /var/lib/nginx
-chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
-
-service apache2 stop 2>/dev/null || true
-pkill -x nginx 2>/dev/null || true
-
-nginx -t || exit 1
-
-chown -R nginx:nginx /var/log/nginx /var/cache/nginx /var/lib/nginx
-rm -f /tmp/nginx.pid
-
-# Start Nginx as the nginx user.
-su -s /bin/sh nginx -c '/usr/sbin/nginx' || exit 1
-
-# Display the running Nginx processes.
-ps -a -u nginx nginx
-
-# Display the port 8080 listeners.
-ss -lntp | grep ':8080'
+# Start Nginx as the nginx user
+sudo -u nginx service nginx start
+ 
