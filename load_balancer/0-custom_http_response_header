@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
-# Installs Nginx and configures the X-Served-By response header.
+# Configures a brand new Ubuntu machine with Nginx and adds a custom
+# X-Served-By HTTP response header containing the server's hostname.
+# shellcheck disable=SC2154
+
+set -e
 
 apt-get update -y
 apt-get install -y nginx
 
-cat > /etc/nginx/conf.d/served_by.conf <<'NGINX'
-add_header X-Served-By $hostname always;
-NGINX
+# Make sure there is something to serve
+echo "Hello World!" > /var/www/html/index.html
 
+# Add the custom header at the http level ($hostname is a built-in Nginx variable)
+cat > /etc/nginx/conf.d/custom_header.conf <<'EOF'
+add_header X-Served-By $hostname;
+EOF
+
+# Validate config and (re)start Nginx
 nginx -t
 service nginx restart
