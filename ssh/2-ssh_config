@@ -1,3 +1,9 @@
+Host 7326-web-01
+    HostName 3.8.175.197
+    User ubuntu
+    IdentityFile ~/.ssh/school
+    PasswordAuthentication no
+
 Host *
     IdentityFile ~/.ssh/school
     PasswordAuthentication no
