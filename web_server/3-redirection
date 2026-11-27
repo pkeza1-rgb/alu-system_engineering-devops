@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# Installs Nginx and configures a permanent redirection.
+# Installs Nginx on a new Ubuntu server and configures a 301 redirect from /redirect_me
 
 apt-get update -y
 apt-get install -y nginx
 
-if ! grep -q 'location /redirect_me' /etc/nginx/sites-available/default; then
-    sed -i '/server_name _;/a\
-    location /redirect_me {\
-        return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;\
-    }' /etc/nginx/sites-available/default
-fi
+echo "Holberton School for the win!" > /var/www/html/index.html
+
+# Remove any previous redirect line so the script can be re-run safely
+sed -i '/location \/redirect_me/d' /etc/nginx/sites-available/default
+
+# Add the 301 redirect right after server_name
+sed -i 's|server_name _;|server_name _;\n\tlocation /redirect_me { return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4; }|' /etc/nginx/sites-available/default
 
 nginx -t
 service nginx restart

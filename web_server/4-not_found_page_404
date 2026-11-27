@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# Configures Nginx with a custom 404 error page.
+# Installs Nginx, adds a 301 redirect on /redirect_me and a custom 404 page
 
 apt-get update -y
 apt-get install -y nginx
 
+echo "Holberton School for the win!" > /var/www/html/index.html
 echo "Ceci n'est pas une page" > /var/www/html/404.html
 
-if ! grep -q 'error_page 404 /404.html;' /etc/nginx/sites-available/default; then
-    sed -i '/server_name _;/a\    error_page 404 /404.html;' /etc/nginx/sites-available/default
-fi
+# Remove any previous lines so the script can be re-run safely
+sed -i '/location \/redirect_me/d' /etc/nginx/sites-available/default
+sed -i '/error_page 404/d' /etc/nginx/sites-available/default
 
+# Add the redirect and the custom 404 page right after server_name
+sed -i 's|server_name _;|server_name _;\n\tlocation /redirect_me { return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4; }\n\terror_page 404 /404.html;|' /etc/nginx/sites-available/default
+
+nginx -t
 service nginx restart
